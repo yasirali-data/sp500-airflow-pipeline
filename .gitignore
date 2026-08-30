@@ -1,0 +1,4 @@
+.env
+stock_profiles.json
+__pycache__/
+*.pyc
