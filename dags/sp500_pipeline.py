@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta
 import sys
+from datetime import datetime, timedelta
+
+sys.path.insert(0, "/opt/airflow/scripts")
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-
-sys.path.insert(0, "/opt/airflow/scripts")
 
 from extract_symbols import get_sp500_symbols
 from fmp_api import fetch_profiles
@@ -19,9 +19,26 @@ default_args = {
 }
 
 
-def fetch_and_upload():
+def fetch_and_upload(**context):
     fetch_profiles()
-    upload_to_s3()
+
+    # Use the DAG's logical date for a consistent S3 partition.
+    upload_date = context["ds"]
+
+    s3_key = upload_to_s3(upload_date=upload_date)
+
+    return s3_key
+
+
+def load_from_s3(**context):
+    s3_key = context["ti"].xcom_pull(
+        task_ids="fetch_fmp_and_upload_s3"
+    )
+
+    if not s3_key:
+        raise ValueError("No S3 key received from Task 2")
+
+    load_to_snowflake(s3_key=s3_key)
 
 
 with DAG(
@@ -45,7 +62,7 @@ with DAG(
 
     task_3_load_snowflake = PythonOperator(
         task_id="load_data_to_snowflake",
-        python_callable=load_to_snowflake,
+        python_callable=load_from_s3,
     )
 
     task_1_get_symbols >> task_2_fetch_fmp_and_upload_s3 >> task_3_load_snowflake

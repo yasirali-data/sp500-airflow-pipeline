@@ -1,10 +1,17 @@
-import os
 import json
+import os
+
+import boto3
 import snowflake.connector
 
 
-def load_to_snowflake():
+BUCKET_NAME = "sp500-airflow-pipeline-data"
 
+
+def load_to_snowflake(s3_key):
+    # -------------------------
+    # Environment variables
+    # -------------------------
     account = os.getenv("SNOWFLAKE_ACCOUNT")
     user = os.getenv("SNOWFLAKE_USER")
     password = os.getenv("SNOWFLAKE_PASSWORD")
@@ -30,20 +37,30 @@ def load_to_snowflake():
             f"Missing Snowflake environment variables: {missing}"
         )
 
-    file_path = "/opt/airflow/scripts/stock_profiles_final.json"
+    # -------------------------
+    # Read JSON from S3
+    # -------------------------
+    print(f"Reading data from s3://{BUCKET_NAME}/{s3_key}")
 
-    with open(file_path, "r") as file:
-        data = json.load(file)
+    s3 = boto3.client("s3")
+
+    response = s3.get_object(
+        Bucket=BUCKET_NAME,
+        Key=s3_key,
+    )
+
+    data = json.loads(
+        response["Body"].read().decode("utf-8")
+    )
 
     if not data:
-        raise ValueError("No stock profile data found")
+        raise ValueError("No stock profile data found in S3")
 
-    print(f"Loading {len(data)} records into Snowflake...")
-    print(f"Database: {database}")
-    print(f"Schema: {schema}")
-    print(f"Warehouse: {warehouse}")
-    print(f"Role: {role}")
+    print(f"Loaded {len(data)} records from S3")
 
+    # -------------------------
+    # Snowflake connection
+    # -------------------------
     conn = snowflake.connector.connect(
         account=account,
         user=user,
@@ -56,17 +73,15 @@ def load_to_snowflake():
     cursor = conn.cursor()
 
     try:
-        # Select warehouse explicitly
         cursor.execute(f'USE WAREHOUSE "{warehouse}"')
-
-        # Select database explicitly
         cursor.execute(f'USE DATABASE "{database}"')
-
-        # Select schema explicitly
         cursor.execute(f'USE SCHEMA "{schema}"')
 
+        # -------------------------
         # Create table
-        cursor.execute("""
+        # -------------------------
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS STOCK_PROFILES (
                 SYMBOL VARCHAR,
                 COMPANY_NAME VARCHAR,
@@ -77,13 +92,40 @@ def load_to_snowflake():
                 EXCHANGE VARCHAR,
                 DESCRIPTION VARCHAR
             )
-        """)
+            """
+        )
 
-        # Insert records
+        # -------------------------
+        # MERGE records
+        # Prevent duplicates
+        # -------------------------
         for record in data:
             cursor.execute(
                 """
-                INSERT INTO STOCK_PROFILES (
+                MERGE INTO STOCK_PROFILES AS target
+                USING (
+                    SELECT
+                        %s AS SYMBOL,
+                        %s AS COMPANY_NAME,
+                        %s AS PRICE,
+                        %s AS MARKET_CAP,
+                        %s AS SECTOR,
+                        %s AS INDUSTRY,
+                        %s AS EXCHANGE,
+                        %s AS DESCRIPTION
+                ) AS source
+                ON target.SYMBOL = source.SYMBOL
+
+                WHEN MATCHED THEN UPDATE SET
+                    COMPANY_NAME = source.COMPANY_NAME,
+                    PRICE = source.PRICE,
+                    MARKET_CAP = source.MARKET_CAP,
+                    SECTOR = source.SECTOR,
+                    INDUSTRY = source.INDUSTRY,
+                    EXCHANGE = source.EXCHANGE,
+                    DESCRIPTION = source.DESCRIPTION
+
+                WHEN NOT MATCHED THEN INSERT (
                     SYMBOL,
                     COMPANY_NAME,
                     PRICE,
@@ -93,7 +135,16 @@ def load_to_snowflake():
                     EXCHANGE,
                     DESCRIPTION
                 )
-                SELECT %s, %s, %s, %s, %s, %s, %s, %s
+                VALUES (
+                    source.SYMBOL,
+                    source.COMPANY_NAME,
+                    source.PRICE,
+                    source.MARKET_CAP,
+                    source.SECTOR,
+                    source.INDUSTRY,
+                    source.EXCHANGE,
+                    source.DESCRIPTION
+                )
                 """,
                 (
                     record.get("symbol"),
@@ -117,7 +168,3 @@ def load_to_snowflake():
     finally:
         cursor.close()
         conn.close()
-
-
-if __name__ == "__main__":
-    load_to_snowflake()

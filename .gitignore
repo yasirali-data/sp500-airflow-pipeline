@@ -1,4 +1,13 @@
 .env
-stock_profiles.json
+
 __pycache__/
-*.pyc.env
+*.pyc
+
+# Generated data
+stock_profiles.json
+stock_profiles_new.json
+stock_profiles_final.json
+
+# AWS CLI local installation
+aws/
+awscliv2.zip

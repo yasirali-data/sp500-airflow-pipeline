@@ -11,7 +11,7 @@ SYMBOLS_TO_FETCH = [
     "ABBV",
 ]
 
-OUTPUT_FILE = "stock_profiles_final.json"
+OUTPUT_FILE = "/opt/airflow/scripts/stock_profiles_final.json"
 
 
 def get_company_profile(symbol):
