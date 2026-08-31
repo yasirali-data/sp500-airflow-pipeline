@@ -4,7 +4,7 @@ SELECTED_SYMBOLS = [
     "ABT",
     "ABBV",
     "ACN",
-    "ADBE"
+    "ADBE",
 ]
 
 

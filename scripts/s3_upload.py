@@ -3,7 +3,8 @@ from datetime import date
 
 
 BUCKET_NAME = "sp500-airflow-pipeline-data"
-LOCAL_FILE = "stock_profiles_final.json"
+LOCAL_FILE = "/opt/airflow/scripts/stock_profiles_final.json"
+
 
 
 def upload_to_s3():
