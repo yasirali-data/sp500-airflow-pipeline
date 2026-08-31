@@ -1,74 +1,44 @@
-📈 S&P 500 Airflow Data Pipeline
-<p align="center"> <b>🚀 End-to-End Data Engineering Pipeline</b> </p> <p align="center"> <img src="https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"> <img src="https://img.shields.io/badge/Apache%20Airflow-Workflow%20Orchestration-017CEE?style=for-the-badge&logo=apacheairflow&logoColor=white" alt="Airflow"> <img src="https://img.shields.io/badge/AWS-S3-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white" alt="AWS S3"> <img src="https://img.shields.io/badge/Snowflake-Data%20Warehouse-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white" alt="Snowflake"> <img src="https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"> </p> <p align="center"> <img src="https://img.shields.io/badge/ETL-Pipeline-success?style=flat-square" alt="ETL"> <img src="https://img.shields.io/badge/Status-Working-brightgreen?style=flat-square" alt="Status"> <img src="https://img.shields.io/badge/Data%20Source-FMP%20API-orange?style=flat-square" alt="FMP API"> </p>
-📌 Overview
+S&P 500 Airflow Data Pipeline
+<p align="center"> <img src="https://img.shields.io/badge/Python-3.x-3776AB?style=flat-square&logo=python&logoColor=white"> <img src="https://img.shields.io/badge/Airflow-2.x-017CEE?style=flat-square&logo=apacheairflow&logoColor=white"> <img src="https://img.shields.io/badge/AWS-S3-FF9900?style=flat-square&logo=amazonaws&logoColor=white"> <img src="https://img.shields.io/badge/Snowflake-Data%20Warehouse-29B5E8?style=flat-square&logo=snowflake&logoColor=white"> <img src="https://img.shields.io/badge/Docker-Containerized-2496ED?style=flat-square&logo=docker&logoColor=white"> </p>
 
-This project is an end-to-end data engineering pipeline that extracts S&P 500 company profile data from the Financial Modeling Prep (FMP) API, processes the data with Python, stores the raw data in Amazon S3, and loads it into Snowflake using Apache Airflow for workflow orchestration.
+An end-to-end data engineering pipeline that extracts S&P 500 company profile data from the Financial Modeling Prep API, stores raw data in Amazon S3, and loads it into Snowflake using Apache Airflow.
 
-The pipeline is containerized using Docker and uses environment variables for secure credential management.
+The project demonstrates API ingestion, cloud storage, workflow orchestration, data warehousing, date-based partitioning, and incremental upsert logic.
 
-🔄 High-Level Flow
-┌─────────────────────┐
-│   S&P 500 Symbols   │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│      FMP API        │
-│ Stock Profile Data  │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ Python Processing   │
-│       + JSON        │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│     Amazon S3       │
-│  Raw Data Layer     │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│      Snowflake      │
-│  Data Warehouse     │
-└─────────────────────┘
+Architecture
+                    Apache Airflow
+                          |
+                          v
+                +-------------------+
+                | S&P 500 Symbols   |
+                +---------+---------+
+                          |
+                          v
+                +-------------------+
+                |     FMP API       |
+                | Company Profiles  |
+                +---------+---------+
+                          |
+                          v
+                +-------------------+
+                | Python Processing |
+                |       JSON        |
+                +---------+---------+
+                          |
+                          v
+                +-------------------+
+                |    Amazon S3      |
+                |    Raw Layer      |
+                +---------+---------+
+                          |
+                          v
+                +-------------------+
+                |     Snowflake     |
+                |  STOCK_PROFILES   |
+                +-------------------+
 
-🏗️ Architecture
-                    🌬️ Apache Airflow
-                           │
-                           ▼
-                ┌─────────────────────┐
-                │ Get S&P 500 Symbols │
-                └──────────┬──────────┘
-                           │
-                           ▼
-                ┌─────────────────────┐
-                │      FMP API        │
-                │ Company Profiles    │
-                └──────────┬──────────┘
-                           │
-                           ▼
-                ┌─────────────────────┐
-                │ Python Processing   │
-                │      JSON           │
-                └──────────┬──────────┘
-                           │
-                           ▼
-                ┌─────────────────────┐
-                │      Amazon S3      │
-                │   Raw Data Layer    │
-                └──────────┬──────────┘
-                           │
-                           ▼
-                ┌─────────────────────┐
-                │      Snowflake      │
-                │ STOCK_PROFILES      │
-                └─────────────────────┘
-
-🔄 Pipeline Workflow
-1. 📊 Get S&P 500 Symbols
+Pipeline Workflow
+1. Get S&P 500 Symbols
 
 The first Airflow task retrieves the stock symbols that need to be processed.
 
@@ -81,25 +51,26 @@ ABBV
 ACN
 ADBE
 
-2. 🔌 Fetch Stock Profiles
+2. Fetch Company Profiles
 
-The pipeline calls the FMP API for each stock symbol.
+The pipeline requests company profile information from the Financial Modeling Prep API.
 
-The retrieved information includes:
+The extracted fields include:
 
-🏢 Company name
-💰 Stock price
-📊 Market capitalization
-🏭 Sector
-🏢 Industry
-📈 Exchange
-📝 Company description
+Symbol
+Company name
+Stock price
+Market capitalization
+Sector
+Industry
+Exchange
+Company description
 
-The data is processed into JSON format.
+The response is processed into JSON format.
 
-3. ☁️ Upload Data to Amazon S3
+3. Store Raw Data in Amazon S3
 
-The generated JSON data is uploaded to Amazon S3 using date-based partitioning.
+The generated JSON file is uploaded to Amazon S3 using a date-based partition.
 
 s3://sp500-airflow-pipeline-data/raw/YYYY-MM-DD/stock_profiles.json
 
@@ -109,59 +80,58 @@ Example:
 s3://sp500-airflow-pipeline-data/raw/2026-08-31/stock_profiles.json
 
 
-This creates a simple historical raw-data layer based on pipeline execution dates.
+This provides a simple historical raw-data layer based on the pipeline execution date.
 
-4. ❄️ Load Data into Snowflake
+4. Load Data into Snowflake
 
-The final Airflow task reads the exact S3 object generated by the previous task and loads the records into:
+The final Airflow task reads the S3 object generated by the previous task and loads the records into:
 
 SP500_DB.PUBLIC.STOCK_PROFILES
 
 
-The Snowflake loader uses MERGE logic to perform an upsert.
+The Snowflake loader uses MERGE logic.
 
-                  ┌───────────────────┐
-                  │   Stock Symbol    │
-                  └─────────┬─────────┘
-                            │
-                     Already Exists?
-                       /           \
-                     YES            NO
-                      │              │
-                      ▼              ▼
-                   UPDATE         INSERT
+                 Stock Symbol
+                      |
+                      v
+                Already Exists?
+                  /         \
+                Yes          No
+                 |            |
+                 v            v
+              UPDATE        INSERT
 
 
-This prevents duplicate stock symbols across pipeline runs.
+This prevents duplicate symbols and updates existing records when new data is available.
 
-🌬️ Airflow DAG
+Airflow DAG
 
-The DAG contains three main tasks:
+The pipeline consists of three main tasks:
 
 get_sp500_symbols
-        │
-        ▼
+        |
+        v
 fetch_fmp_and_upload_s3
-        │
-        ▼
+        |
+        v
 load_data_to_snowflake
 
 
-The S3 object key generated by the upload task is passed to the Snowflake task using Airflow XCom.
+The S3 object key returned by the upload task is passed to the Snowflake task using Airflow XCom.
 
-This means the downstream task loads the exact object created by the previous task, rather than relying on a hard-coded S3 path.
+This allows the downstream task to load the exact object produced by the previous task instead of using a hard-coded S3 path.
 
-🛠️ Technology Stack
+Technology Stack
 Technology	Purpose
-🐍 Python	Data extraction and processing
-🌬️ Apache Airflow	Workflow orchestration
-🔌 FMP API	Stock market data source
-☁️ Amazon S3	Raw data storage
-❄️ Snowflake	Data warehouse
-🐳 Docker	Containerized environment
-🔐 Environment Variables	Secret management
-🧪 Airflow DAG Test	Pipeline validation
-📁 Project Structure
+Python	Data extraction and processing
+Apache Airflow	Workflow orchestration
+FMP API	Stock market data source
+Amazon S3	Raw data storage
+Snowflake	Data warehouse
+Docker	Containerized development
+Git & GitHub	Version control
+Environment Variables	Credential management
+Project Structure
 sp500-airflow-pipeline/
 │
 ├── dags/
@@ -186,13 +156,12 @@ sp500-airflow-pipeline/
 ├── .gitignore
 └── README.md
 
-⚙️ Setup
-1️⃣ Clone the Repository
+Setup
+1. Clone the Repository
 git clone https://github.com/yasirali-data/sp500-airflow-pipeline.git
-
 cd sp500-airflow-pipeline
 
-2️⃣ Configure Environment Variables
+2. Configure Environment Variables
 
 Create a local .env file:
 
@@ -209,16 +178,16 @@ SNOWFLAKE_ROLE=your_role
 
 Configure AWS credentials using your local AWS credential configuration or another supported authentication method.
 
-⚠️ Never commit .env or credential files to GitHub.
+Important: Never commit .env, API keys, passwords, AWS credentials, or private keys to the repository.
 
-🐳 Run with Docker
+Run with Docker
 
 Start the Airflow environment:
 
 docker compose up -d
 
 
-Check running containers:
+Check the running containers:
 
 docker compose ps
 
@@ -227,28 +196,28 @@ Stop the environment:
 
 docker compose down
 
-🧪 Test the Pipeline
+Test the Pipeline
 
-The complete DAG can be tested directly from the Airflow scheduler container:
+The complete DAG can be tested directly from the Airflow scheduler:
 
 docker compose exec airflow-scheduler \
   airflow dags test sp500_pipeline 2026-08-31
 
-✅ Successful Pipeline Run
+Test Result
 
-The pipeline has been successfully tested through all three stages:
+The pipeline was successfully tested through all three stages:
 
 get_sp500_symbols
-        ✅ SUCCESS
+        SUCCESS
 
 fetch_fmp_and_upload_s3
-        ✅ SUCCESS
+        SUCCESS
 
 load_data_to_snowflake
-        ✅ SUCCESS
+        SUCCESS
 
 
-Example result:
+Example execution:
 
 Successfully fetched 2 companies
 
@@ -258,14 +227,13 @@ s3://sp500-airflow-pipeline-data/raw/2026-08-31/stock_profiles.json
 Successfully loaded 2 records into:
 SP500_DB.PUBLIC.STOCK_PROFILES
 
-☁️ S3 Data Layout
+S3 Data Layout
 
 Raw data is organized by execution date:
 
 sp500-airflow-pipeline-data/
 │
 └── raw/
-    │
     ├── 2026-08-31/
     │   └── stock_profiles.json
     │
@@ -275,9 +243,9 @@ sp500-airflow-pipeline-data/
     └── ...
 
 
-This structure provides a simple historical raw-data layer.
+This structure creates a simple historical raw-data layer.
 
-❄️ Snowflake Data Model
+Snowflake Data Model
 Database
 SP500_DB
 
@@ -287,7 +255,7 @@ PUBLIC
 Table
 STOCK_PROFILES
 
-Table Schema
+Schema
 Column	Data Type	Description
 SYMBOL	VARCHAR	Stock ticker
 COMPANY_NAME	VARCHAR	Company name
@@ -297,90 +265,58 @@ SECTOR	VARCHAR	Business sector
 INDUSTRY	VARCHAR	Business industry
 EXCHANGE	VARCHAR	Stock exchange
 DESCRIPTION	VARCHAR	Company description
-🔐 Security
+Security
 
-The project uses environment-based configuration for sensitive credentials.
+Sensitive credentials are managed through environment variables rather than hard-coded in the source code.
 
-Secrets are not hard-coded in the source code.
+The project uses environment variables for:
 
-Environment variables are used for:
+FMP API credentials
+Snowflake credentials
+AWS authentication
 
-🔑 FMP API key
-❄️ Snowflake password
-❄️ Snowflake account credentials
-☁️ AWS authentication
-
-The following files are excluded from version control:
+The following are excluded from version control:
 
 .env
+aws/
+awscliv2.zip
 
 stock_profiles.json
 stock_profiles_new.json
 stock_profiles_final.json
 
-aws/
-awscliv2.zip
 
+Never upload API keys, passwords, AWS access keys, private keys, or .env files to a public repository.
 
-🔒 Never upload API keys, passwords, AWS access keys, private keys, or .env files to a public repository.
+Key Features
+End-to-end ETL pipeline
+Apache Airflow orchestration
+Financial API integration
+Python-based data processing
+Amazon S3 raw data layer
+Date-partitioned S3 storage
+Snowflake data warehouse
+Snowflake MERGE / upsert logic
+Airflow XCom communication
+Dockerized environment
+Environment-based secret management
+End-to-end DAG testing
+Future Improvements
+Process the complete S&P 500 dataset
+Add automated data quality checks
+Add Airflow retries and alerting
+Introduce Snowflake staging tables
+Add incremental loading metadata
+Expand unit and integration tests
+Add GitHub Actions CI/CD
+Add pipeline monitoring
+Build a dashboard using Snowflake
+Add historical stock price ingestion
+Author
 
-✨ Key Features
-✅ End-to-end ETL pipeline
-🌬️ Apache Airflow orchestration
-📊 S&P 500 stock data extraction
-🔌 External API integration
-🐍 Python-based processing
-☁️ Amazon S3 raw data layer
-📅 Date-partitioned S3 storage
-❄️ Snowflake data warehouse
-🔄 Snowflake MERGE / upsert logic
-🔗 Airflow XCom communication
-🐳 Dockerized development environment
-🔐 Environment-based secret management
-🧪 End-to-end DAG testing
-🎯 What This Project Demonstrates
-
-This project demonstrates practical experience with:
-
-Data Engineering
-ETL / ELT pipelines
-API ingestion
-Data processing
-Data partitioning
-Data warehousing
-Upsert / merge strategies
-Cloud & Infrastructure
-AWS S3
-Snowflake
-Docker
-Environment-based configuration
-Workflow Orchestration
-Apache Airflow
-DAG design
-Task dependencies
-XCom communication
-Pipeline testing
-Software Engineering
-Python
-Modular scripts
-Configuration management
-Version control
-Secure credential handling
-🚀 Future Improvements
- Process the complete S&P 500 dataset
- Add automated data quality checks
- Add Airflow retry and alerting policies
- Add Snowflake staging tables
- Add incremental loading metadata
- Expand unit and integration tests
- Add GitHub Actions CI/CD
- Add pipeline monitoring
- Build a dashboard using Snowflake data
- Add historical stock price data
-👨‍💻 Author
 Yasir Ali
 
 Data Engineering | Python | Apache Airflow | AWS | Snowflake
 
-<p align="center"> ⭐ If you found this project useful, consider giving the repository a star! </p> <p align="center"> <a href="https://github.com/yasirali-data/sp500-airflow-pipeline"> 🔗 View Repository </a> </p>
-📄 License
+GitHub
+
