@@ -320,3 +320,6 @@ Data Engineering | Python | Apache Airflow | AWS | Snowflake
 
 GitHub
 
+License
+
+This project is created for educational and portfolio purposes.
