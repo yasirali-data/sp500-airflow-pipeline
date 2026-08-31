@@ -1,272 +1,416 @@
-<div align="center">
-S&P 500 Data Engineering Pipeline
-Automated Stock Data Ingestion with Apache Airflow, AWS S3 & Snowflake
-<br> <a href="https://www.python.org/"> <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" /> </a> <a href="https://airflow.apache.org/"> <img src="https://img.shields.io/badge/Airflow-017CEE?style=for-the-badge&logo=apacheairflow&logoColor=white" /> </a> <a href="https://aws.amazon.com/s3/"> <img src="https://img.shields.io/badge/AWS%20S3-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white" /> </a> <a href="https://www.snowflake.com/"> <img src="https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white" /> </a> <a href="https://www.docker.com/"> <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" /> </a>
+# S&P 500 Data Engineering Pipeline with Apache Airflow
 
-<br><br>
+An end-to-end data engineering project that demonstrates how to build, containerize, orchestrate, and automate a stock market data pipeline using **Python, Apache Airflow, PostgreSQL, and Docker**.
 
-An end-to-end ETL pipeline for extracting, processing, storing and warehousing S&P 500 company data.
+The pipeline is designed around S&P 500 market data and follows a structured **Extract → Transform → Load (ETL)** workflow. Apache Airflow is used to orchestrate the pipeline as a DAG, while Docker provides a reproducible environment for running the complete workflow.
 
-</div>
-Overview
+---
 
-This project implements a production-style data pipeline that retrieves company profile data from the Financial Modeling Prep API, processes it with Python, stores the raw data in Amazon S3, and loads it into Snowflake.
+## Project Overview
 
-The entire workflow is orchestrated using Apache Airflow and runs in a Dockerized environment.
+This project was built to simulate a real-world data engineering workflow where raw financial data is extracted, transformed, and loaded into a database through an automated orchestration layer.
 
-Data Flow
-<div align="center">
- S&P 500 Symbols
-        │
-        ▼
- ┌───────────────┐
- │   FMP API     │
- │ Stock Profiles│
- └───────┬───────┘
-         │
-         ▼
- ┌───────────────┐
- │    Python     │
- │  Processing   │
- └───────┬───────┘
-         │
-         ▼
- ┌───────────────┐
- │   Amazon S3   │
- │   Raw Layer   │
- └───────┬───────┘
-         │
-         ▼
- ┌───────────────┐
- │   Snowflake   │
- │ Data Warehouse│
- └───────────────┘
+Instead of executing individual Python scripts manually, the entire workflow is managed through **Apache Airflow**.
 
-</div>
-Pipeline
-<table> <tr> <td width="33%" align="center">
-01
+### Pipeline Flow
 
-Extract
+```text
+                ┌─────────────────────┐
+                │   S&P 500 Data      │
+                │       Source        │
+                └──────────┬──────────┘
+                           │
+                           ▼
+                ┌─────────────────────┐
+                │      Extract        │
+                │   Python / API      │
+                └──────────┬──────────┘
+                           │
+                           ▼
+                ┌─────────────────────┐
+                │     Transform       │
+                │ Cleaning &          │
+                │ Data Processing     │
+                └──────────┬──────────┘
+                           │
+                           ▼
+                ┌─────────────────────┐
+                │        Load         │
+                │    PostgreSQL       │
+                └──────────┬──────────┘
+                           │
+                           ▼
+                ┌─────────────────────┐
+                │   Apache Airflow    │
+                │ DAG Orchestration   │
+                └─────────────────────┘
+```
 
-S&P 500 symbols are collected and company profiles are retrieved through the FMP API.
+---
 
-</td> <td width="33%" align="center">
-02
+## Objectives
 
-Store
+The main objectives of this project are to:
 
-Processed JSON data is uploaded to Amazon S3 using date-based partitions.
+* Build an automated ETL pipeline for S&P 500 data
+* Practice data ingestion and transformation with Python
+* Use Apache Airflow for workflow orchestration
+* Create and manage Airflow DAGs
+* Containerize the pipeline using Docker
+* Use PostgreSQL as the data storage layer
+* Implement task dependencies and pipeline scheduling
+* Monitor pipeline execution through the Airflow UI
+* Build a reproducible local data engineering environment
 
-</td> <td width="33%" align="center">
-03
+---
 
-Load
+## Tech Stack
 
-Data is read from S3 and upserted into Snowflake using MERGE.
+| Technology         | Purpose                               |
+| ------------------ | ------------------------------------- |
+| **Python**         | Data extraction and transformation    |
+| **Pandas**         | Data manipulation and preprocessing   |
+| **Apache Airflow** | Workflow orchestration and scheduling |
+| **PostgreSQL**     | Relational database / data storage    |
+| **Docker**         | Containerization                      |
+| **Docker Compose** | Multi-container environment           |
+| **SQL**            | Data querying and validation          |
+| **Git & GitHub**   | Version control                       |
 
-</td> </tr> </table>
-Airflow DAG
-┌─────────────────────────┐
-│   get_sp500_symbols     │
-└────────────┬────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│ fetch_fmp_and_upload_s3 │
-└────────────┬────────────┘
-             │
-             │ XCom
-             ▼
-┌─────────────────────────┐
-│ load_data_to_snowflake  │
-└─────────────────────────┘
+---
 
+## Architecture
 
-The upload task returns the generated S3 object key through Airflow XCom.
+The project uses a containerized architecture where Airflow and PostgreSQL run as separate services.
 
-The downstream Snowflake task uses that key to load the exact file generated by the previous task.
+```text
+                         S&P 500 Data
+                              │
+                              ▼
+                     ┌─────────────────┐
+                     │ Python Pipeline │
+                     │ Extract / Clean │
+                     └────────┬────────┘
+                              │
+                              ▼
+                     ┌─────────────────┐
+                     │ Apache Airflow  │
+                     │      DAG        │
+                     └────────┬────────┘
+                              │
+                              ▼
+                     ┌─────────────────┐
+                     │   PostgreSQL    │
+                     │     Database    │
+                     └─────────────────┘
+```
 
-Data Architecture
-Amazon S3
+Docker Compose is used to manage the services and provide a consistent development environment.
 
-Raw data follows a date-partitioned structure:
+---
 
-sp500-airflow-pipeline-data/
-│
-└── raw/
-    ├── 2026-08-31/
-    │   └── stock_profiles.json
-    │
-    └── YYYY-MM-DD/
-        └── stock_profiles.json
+## Project Structure
 
-Snowflake
-SP500_DB
-└── PUBLIC
-    └── STOCK_PROFILES
-
-Column	Type	Description
-SYMBOL	VARCHAR	Stock ticker
-COMPANY_NAME	VARCHAR	Company name
-PRICE	FLOAT	Current stock price
-MARKET_CAP	FLOAT	Market capitalization
-SECTOR	VARCHAR	Business sector
-INDUSTRY	VARCHAR	Business industry
-EXCHANGE	VARCHAR	Stock exchange
-DESCRIPTION	VARCHAR	Company description
-Technology Stack
-<div align="center">
-Layer	Technology
-Language	Python
-Orchestration	Apache Airflow
-Data Source	Financial Modeling Prep API
-Object Storage	Amazon S3
-Data Warehouse	Snowflake
-Environment	Docker
-Version Control	Git / GitHub
-</div>
-Project Structure
+```text
 sp500-airflow-pipeline/
 │
 ├── dags/
 │   └── sp500_pipeline.py
 │
 ├── scripts/
-│   ├── extract_symbols.py
-│   ├── fmp_api.py
-│   ├── s3_upload.py
-│   ├── load_snowflake.py
-│   └── combine_data.py
+│   └── ...
 │
-├── sql/
-│
-├── tests/
+├── data/
+│   └── ...
 │
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
 ├── .gitignore
 └── README.md
+```
 
-Getting Started
-Clone
+> The exact filenames may vary depending on the current implementation of the repository.
+
+---
+
+## Pipeline Workflow
+
+The pipeline consists of several logical stages.
+
+### 1. Extract
+
+The extraction stage retrieves S&P 500 market data from the configured data source.
+
+Raw data is collected before being passed to the transformation stage.
+
+### 2. Transform
+
+The transformation stage prepares the raw dataset for storage.
+
+Typical operations include:
+
+* Handling missing values
+* Converting data types
+* Cleaning columns
+* Standardizing date fields
+* Removing invalid records
+* Preparing structured records for PostgreSQL
+
+### 3. Load
+
+The processed data is loaded into PostgreSQL.
+
+PostgreSQL provides a persistent relational storage layer that can subsequently be queried using SQL.
+
+### 4. Orchestration
+
+Apache Airflow manages the complete workflow using a DAG.
+
+The DAG defines:
+
+* Tasks
+* Task dependencies
+* Execution order
+* Scheduling
+* Retries
+* Pipeline monitoring
+
+This makes the pipeline reproducible and removes the need to manually execute each script.
+
+---
+
+# Running the Project Locally
+
+## Prerequisites
+
+Make sure the following are installed:
+
+* Docker
+* Docker Compose
+* Git
+
+Verify the installations:
+
+```bash
+docker --version
+docker compose version
+git --version
+```
+
+---
+
+## Clone the Repository
+
+```bash
 git clone https://github.com/yasirali-data/sp500-airflow-pipeline.git
 cd sp500-airflow-pipeline
+```
 
-Environment Variables
+---
 
-Create a local .env file:
+## Build the Docker Image
 
-FMP_API_KEY=your_fmp_api_key
+Build the custom Airflow image:
 
-SNOWFLAKE_ACCOUNT=your_account
-SNOWFLAKE_USER=your_username
-SNOWFLAKE_PASSWORD=your_password
-SNOWFLAKE_WAREHOUSE=your_warehouse
-SNOWFLAKE_DATABASE=SP500_DB
-SNOWFLAKE_SCHEMA=PUBLIC
-SNOWFLAKE_ROLE=your_role
+```bash
+docker compose build
+```
 
+---
 
-Configure AWS credentials through your local AWS credential configuration.
+## Start the Services
 
-Never commit .env, API keys, passwords, AWS credentials or private keys.
+Start the containers:
 
-Start Airflow
+```bash
 docker compose up -d
+```
 
+Check running containers:
 
-Check containers:
-
+```bash
 docker compose ps
+```
+
+---
+
+## Initialize Airflow
+
+If Airflow initialization is required by the current configuration, run:
+
+```bash
+docker compose up airflow-init
+```
+
+Then start the services again:
+
+```bash
+docker compose up -d
+```
+
+---
+
+## Access Airflow
+
+Open the Airflow web interface:
+
+```text
+http://localhost:8080
+```
+
+From the Airflow UI you can:
+
+* View available DAGs
+* Trigger the S&P 500 pipeline
+* Monitor task execution
+* Inspect logs
+* Check task dependencies
+* Retry failed tasks
+
+---
+
+# Docker Configuration
+
+The project uses a custom Airflow image based on the official Apache Airflow image.
+
+Example:
+
+```dockerfile
+FROM apache/airflow:2.10.5
+
+COPY requirements.txt /requirements.txt
+
+RUN pip install --no-cache-dir -r /requirements.txt
+```
+
+This allows the pipeline to install the Python dependencies required by the project while keeping the execution environment reproducible.
+
+---
+
+# Database
+
+PostgreSQL is used as the project's relational database.
+
+The database runs as a separate Docker service and is connected to the Airflow environment through Docker Compose.
+
+Example PostgreSQL configuration:
+
+```yaml
+postgres:
+  image: postgres:15
+```
+
+The database can be accessed from the Airflow environment using the configured PostgreSQL connection.
+
+---
+
+# Airflow DAG
+
+The pipeline is implemented as an Apache Airflow DAG.
+
+Conceptually, the workflow follows:
+
+```text
+Extract
+   │
+   ▼
+Transform
+   │
+   ▼
+Load
+```
+
+Airflow ensures that downstream tasks execute only after their upstream dependencies have completed successfully.
+
+This provides a clean separation between individual pipeline tasks and makes failures easier to identify and troubleshoot.
+
+---
+
+# Data Engineering Concepts Demonstrated
+
+This project demonstrates several core data engineering concepts:
+
+### ETL
+
+Extracting raw data, transforming it into a usable structure, and loading it into a database.
+
+### Workflow Orchestration
+
+Using Apache Airflow to automate and manage pipeline execution.
+
+### DAGs
+
+Representing pipeline dependencies as a Directed Acyclic Graph.
+
+### Containerization
+
+Using Docker to create a consistent execution environment.
+
+### Relational Data Storage
+
+Using PostgreSQL to persist structured financial data.
+
+### Pipeline Monitoring
+
+Using the Airflow UI and task logs to monitor executions and troubleshoot failures.
+
+### Reproducibility
+
+Using Docker, requirements, and version-controlled configuration to make the project easier to reproduce.
+
+---
+
+# Key Features
+
+* Automated S&P 500 data pipeline
+* Apache Airflow DAG orchestration
+* Dockerized Airflow environment
+* PostgreSQL database
+* Python-based data processing
+* Configurable pipeline tasks
+* Task dependency management
+* Pipeline monitoring through Airflow UI
+* Reproducible development environment
+
+---
+
+# Future Improvements
+
+Possible improvements for the next version include:
+
+* Add data quality validation using Great Expectations
+* Add incremental data loading
+* Implement PostgreSQL indexes for analytical queries
+* Add automated testing
+* Add CI/CD with GitHub Actions
+* Add pipeline failure notifications
+* Add cloud deployment
+* Add a data warehouse layer
+* Add dashboarding with Power BI or another BI platform
+* Add monitoring and pipeline observability
+* Implement partitioning for large historical datasets
+
+---
+
+# What This Project Demonstrates
+
+This project focuses on the practical side of data engineering rather than simply running Python scripts.
+
+It demonstrates how individual data-processing components can be combined into an automated pipeline using:
+
+**Python → ETL → Airflow → Docker → PostgreSQL**
+
+The project provides hands-on experience with workflow orchestration, containerization, database integration, and automated data pipelines.
+
+---
+
+## Author
+
+**Yasir Ali**
 
 
-Stop:
+GitHub:
+https://github.com/yasirali-data
 
-docker compose down
-
-Pipeline Test
-
-The complete DAG can be tested directly from the Airflow scheduler:
-
-docker compose exec airflow-scheduler \
-  airflow dags test sp500_pipeline 2026-08-31
-
-Result
-get_sp500_symbols
-        ✓ SUCCESS
-
-fetch_fmp_and_upload_s3
-        ✓ SUCCESS
-
-load_data_to_snowflake
-        ✓ SUCCESS
-
-
-Example output:
-
-Successfully fetched 2 companies
-
-Uploaded to:
-s3://sp500-airflow-pipeline-data/raw/2026-08-31/stock_profiles.json
-
-Successfully loaded 2 records into:
-SP500_DB.PUBLIC.STOCK_PROFILES
-
-Key Engineering Concepts
-
-This project demonstrates:
-
-ETL pipeline design
-REST API ingestion
-Python data processing
-Apache Airflow DAG orchestration
-Airflow XCom communication
-Amazon S3 raw data storage
-Date-based data partitioning
-Snowflake data warehousing
-MERGE / upsert operations
-Dockerized development
-Environment-based secret management
-End-to-end pipeline testing
-Security
-
-Sensitive credentials are supplied through environment variables rather than being hard-coded.
-
-Ignored local files include:
-
-.env
-aws/
-awscliv2.zip
-stock_profiles.json
-stock_profiles_new.json
-stock_profiles_final.json
-
-
-The repository contains no committed API keys, Snowflake passwords, AWS access keys, or private keys.
-
-Roadmap
- Process the complete S&P 500 dataset
- Add data quality validation
- Add Airflow retries and alerting
- Introduce Snowflake staging tables
- Add incremental loading metadata
- Expand unit and integration tests
- Add GitHub Actions CI/CD
- Add pipeline monitoring
- Build analytics dashboard
- Add historical stock price ingestion
-<div align="center">
-Author
-Yasir Ali
-
-Data Engineering · Python · Apache Airflow · AWS · Snowflake
-
-<br> <a href="https://github.com/yasirali-data"> <img src="https://img.shields.io/badge/GitHub-yasirali--data-181717?style=for-the-badge&logo=github&logoColor=white" /> </a>
-
-<br><br>
-
-⭐ If you find this project useful, consider giving it a star.
-
-</div>
+---
