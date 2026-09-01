@@ -415,4 +415,4 @@ The pipeline combines **data ingestion, workflow orchestration, cloud storage, d
 
 **Technologies:** Python • SQL • Apache Airflow • AWS S3 • Snowflake • Docker • PostgreSQL • REST APIs
 
-**GitHub:** [yasirali-data](https://github.com/yasiralii-dev)
+**GitHub:** [yasiralii-dev](https://github.com/yasiralii-dev)
